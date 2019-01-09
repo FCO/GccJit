@@ -47,6 +47,16 @@ class GccJit is repr("CPointer") {
             gcc_jit_function_new_block self, $name
         }
     }
+    class Field is repr("CPointer") {}
+    class Union is repr("CPointer") {}
+    class Struct is repr("CPointer") {
+        method Type {
+            gcc_jit_struct_as_type self
+        }
+        method set-field(@fields, Location :$location) {
+            gcc_jit_struct_set_fields self, $location, CArray[Field].new(|@fields>>.Field)
+        }
+    }
     class Result is repr("CPointer") {
         method get-code(Str $name) {
             gcc_jit_result_get_code self, $name
@@ -137,6 +147,40 @@ class GccJit is repr("CPointer") {
         Result,
         Str
     ) returns Pointer is native("gccjit") { * }
+    sub gcc_jit_context_new_struct_type(
+        GccJit,
+        Location,
+        Str,
+        int16,
+        CArray[Field]
+    ) returns Struct is native("gccjit") { * }
+    sub gcc_jit_context_new_opaque_struct(
+        GccJit,
+        Location,
+        Str,
+    ) returns Struct is native("gccjit") { * }
+    sub gcc_jit_struct_as_type(
+        Struct
+    ) returns Type is native("gccjit") { * }
+    sub gcc_jit_context_new_union_type(
+        GccJit,
+        Location,
+        Str,
+        int16,
+        CArray[Field]
+    ) returns Struct is native("gccjit") { * }
+    sub gcc_jit_struct_set_fields(
+        Struct,
+        Location,
+        int16,
+        CArray[Field]
+    ) is native("gccjit") { * }
+    sub gcc_jit_context_new_field(
+        GccJit,
+        Location,
+        Type,
+        Str
+    ) returns Field is native("gccjit") { * }
 
     method new { gcc_jit_context_acquire() }
 
@@ -236,6 +280,17 @@ class GccJit is repr("CPointer") {
     method new-string-literal(Str() $val) {
         gcc_jit_context_new_string_literal self, $val
     }
+
+    method new-struct-type(Str() $name, *@fields, Location :$location) {
+        gcc_jit_context_new_struct_type self, $location, $name, +@fields, @fields>>.Field
+    }
+    method new-opaque-struct(Str() $name, Location :$location) {
+        gcc_jit_context_new_opaque_struct self, $location, $name
+    }
+    method new-union-type(Str() $name, *@fields, Location :$location) {
+        gcc_jit_context_new_union_type self, $location, $name, +@fields, @fields>>.Field
+    }
+
     method compile {
         gcc_jit_context_compile self;
     }
