@@ -240,16 +240,16 @@ class GccJit is repr("CPointer") {
     method compile-to-file(GccJitOutputKind $kind, Str $file) {
         gcc_jit_context_compile_to_file self, $kind, $file
     }
-    method compile-to-assembler(GccJitOutputKind $kind, Str $file) {
+    method compile-to-assembler(Str $file) {
         gcc_jit_context_compile_to_file self, ASSEMBLER, $file
     }
-    method compile-to-object(GccJitOutputKind $kind, Str $file) {
+    method compile-to-object(Str $file) {
         gcc_jit_context_compile_to_file self, OBJECT_FILE, $file
     }
-    method compile-to-dyn-lib(GccJitOutputKind $kind, Str $file) {
+    method compile-to-dyn-lib(Str $file) {
         gcc_jit_context_compile_to_file self, DYNAMIC_LIBRARY, $file
     }
-    method compile-to-executable(GccJitOutputKind $kind, Str $file) {
+    method compile-to-executable(Str $file) {
         gcc_jit_context_compile_to_file self, EXECUTABLE, $file
     }
 }
