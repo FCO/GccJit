@@ -16,7 +16,9 @@ enum GccBinOp < PLUS MINUS MULT DIVIDE MODULO BITWISE_AND BITWISE_XOR
 class GccJit is repr("CPointer") {
     class Type is repr("CPointer") {}
     class Location is repr("CPointer") {}
-    class RValue is repr("CPointer") {}
+    class RValue is repr("CPointer") {
+        method RValue { self }
+    }
     class LValue is repr("CPointer") {}
     class Param is repr("CPointer") is RValue {
         method RValue {
@@ -24,15 +26,15 @@ class GccJit is repr("CPointer") {
         }
     }
     class Block is repr("CPointer") {
-        method add-eval(RValue $rvalue, Location :$location) {
+        method add-eval(RValue() $rvalue, Location :$location) {
             gcc_jit_block_add_eval self, $location, $rvalue
         }
 
-        method add-assignment(RValue $rvalue, LValue $lvalue, Location :$location) {
+        method add-assignment(RValue() $rvalue, LValue $lvalue, Location :$location) {
             gcc_jit_block_add_assignment self, $location, $rvalue, $lvalue
         }
 
-        method end-with-return(RValue $rvalue, Location :$location) {
+        method end-with-return(RValue() $rvalue, Location :$location) {
             gcc_jit_block_end_with_return self, $location, $rvalue
         }
 
@@ -138,7 +140,7 @@ class GccJit is repr("CPointer") {
 
     method new { gcc_jit_context_acquire() }
 
-    method get-type(GccJitType $type) { gcc_jit_context_get_type self, $type }
+    method get-type(GccJitType() $type) { gcc_jit_context_get_type self, $type }
     method void                 { $ //= self.get-type: VOID                }
     method void-ptr             { $ //= self.get-type: VOID-PTR            }
     method bool                 { $ //= self.get-type: BOOL                }
@@ -163,93 +165,93 @@ class GccJit is repr("CPointer") {
     method complex-double       { $ //= self.get-type: COMPLEX-DOUBLE      }
     method complex-long-double  { $ //= self.get-type: COMPLEX-LONG-DOUBLE }
 
-    method new-param(Type $type, Str $name, Location :$location) {
+    method new-param(Type() $type, Str() $name, Location() :$location) {
         gcc_jit_context_new_param self, $location, $type, $name
     }
-    method new-function(GccJitFuncType $ftype, Type $type, Str $name, *@params, Location :$location, Bool :$variadic = False) {
+    method new-function(GccJitFuncType() $ftype, Type() $type, Str() $name, *@params, Location() :$location, Bool() :$variadic = False) {
         gcc_jit_context_new_function self, $location, $ftype,
             $type, $name, +@params, CArray[Param].new(|@params), +$variadic
     }
-    method new-exported-function(Type $type, Str $name, *@params, Location :$location, Bool :$variadic = False) {
+    method new-exported-function(Type() $type, Str() $name, *@params, Location() :$location, Bool() :$variadic = False) {
         gcc_jit_context_new_function self, $location, EXPORTED,
             $type, $name, +@params, CArray[Param].new(|@params), +$variadic
     }
-    method new-internal-function(Type $type, Str $name, *@params, Location :$location, Bool :$variadic = False) {
+    method new-internal-function(Type() $type, Str() $name, *@params, Location() :$location, Bool() :$variadic = False) {
         gcc_jit_context_new_function self, $location, INTERNAL,
             $type, $name, +@params, CArray[Param].new(|@params), +$variadic
     }
-    method new-imported-function(Type $type, Str $name, *@params, Location :$location, Bool :$variadic = False) {
+    method new-imported-function(Type() $type, Str() $name, *@params, Location() :$location, Bool() :$variadic = False) {
         gcc_jit_context_new_function self, $location, IMPORTED,
             $type, $name, +@params, CArray[Param].new(|@params), +$variadic
     }
-    method new-inlined-function(Type $type, Str $name, *@params, Location :$location, Bool :$variadic = False) {
+    method new-inlined-function(Type() $type, Str() $name, *@params, Location() :$location, Bool() :$variadic = False) {
         gcc_jit_context_new_function self, $location, ALWAYS_INLINE,
             $type, $name, +@params, CArray[Param].new(|@params), +$variadic
     }
-    method new-binary-op(GccBinOp $op, Type $type, RValue $a, RValue $b, Location :$location) {
+    method new-binary-op(GccBinOp() $op, Type() $type, RValue() $a, RValue() $b, Location() :$location) {
             gcc_jit_context_new_binary_op self, $location, +$op, $type, $a, $b
     }
-    method new-binary-plus(Type $type, RValue $a, RValue $b, Location :$location) {
+    method new-binary-plus(Type() $type, RValue() $a, RValue() $b, Location() :$location) {
         self.new-binary-op(PLUS, $type, $a, $b, :$location)
     }
-    method new-binary-minus(Type $type, RValue $a, RValue $b, Location :$location) {
+    method new-binary-minus(Type() $type, RValue() $a, RValue() $b, Location() :$location) {
         self.new-binary-op(MINUS, $type, $a, $b, :$location)
     }
-    method new-binary-mult(Type $type, RValue $a, RValue $b, Location :$location) {
+    method new-binary-mult(Type() $type, RValue() $a, RValue() $b, Location() :$location) {
         self.new-binary-op(MULT, $type, $a, $b, :$location)
     }
-    method new-binary-divide(Type $type, RValue $a, RValue $b, Location :$location) {
+    method new-binary-divide(Type() $type, RValue() $a, RValue() $b, Location() :$location) {
         self.new-binary-op(DIVIDE, $type, $a, $b, :$location)
     }
-    method new-binary-modulo(Type $type, RValue $a, RValue $b, Location :$location) {
+    method new-binary-modulo(Type() $type, RValue() $a, RValue() $b, Location() :$location) {
         self.new-binary-op(MODULO, $type, $a, $b, :$location)
     }
-    method new-binary-bitwise_and(Type $type, RValue $a, RValue $b, Location :$location) {
+    method new-binary-bitwise_and(Type() $type, RValue() $a, RValue() $b, Location() :$location) {
         self.new-binary-op(BITWISE_AND, $type, $a, $b, :$location)
     }
-    method new-binary-bitwise_xor(Type $type, RValue $a, RValue $b, Location :$location) {
+    method new-binary-bitwise_xor(Type() $type, RValue() $a, RValue() $b, Location() :$location) {
         self.new-binary-op(BITWISE_XOR, $type, $a, $b, :$location)
     }
-    method new-binary-bitwise_or(Type $type, RValue $a, RValue $b, Location :$location) {
+    method new-binary-bitwise_or(Type() $type, RValue() $a, RValue() $b, Location() :$location) {
         self.new-binary-op(BITWISE_OR, $type, $a, $b, :$location)
     }
-    method new-binary-logical_and(Type $type, RValue $a, RValue $b, Location :$location) {
+    method new-binary-logical_and(Type() $type, RValue() $a, RValue() $b, Location() :$location) {
         self.new-binary-op(LOGICAL_AND, $type, $a, $b, :$location)
     }
-    method new-binary-logical_or(Type $type, RValue $a, RValue $b, Location :$location) {
+    method new-binary-logical_or(Type() $type, RValue() $a, RValue() $b, Location() :$location) {
         self.new-binary-op(LOGICAL_OR, $type, $a, $b, :$location)
     }
-    method new-binary-lshift(Type $type, RValue() $a, RValue() $b, Location :$location) {
+    method new-binary-lshift(Type() $type, RValue() $a, RValue() $b, Location() :$location) {
         self.new-binary-op(LSHIFT, $type, $a, $b, :$location)
     }
-    method new-binary-rshift(Type $type, RValue $a, RValue $b, Location :$location) {
+    method new-binary-rshift(Type() $type, RValue() $a, RValue() $b, Location() :$location) {
         self.new-binary-op(RSHIFT, $type, $a, $b, :$location)
     }
-    method new-call (Function $func, *@args, Location :$location) {
-            gcc_jit_context_new_call self, $location, $func, +@args , CArray[RValue].new: |@args
+    method new-call (Function() $func, *@args, Location() :$location) {
+            gcc_jit_context_new_call self, $location, $func, +@args , CArray[RValue].new: |@args>>.RValue
     }
-    method new-rvalue-from-int(Int $val) {
+    method new-rvalue-from-int(Int() $val) {
         gcc_jit_context_new_rvalue_from_int self, self.int, $val
     }
-    method new-string-literal(Str $val) {
+    method new-string-literal(Str() $val) {
         gcc_jit_context_new_string_literal self, $val
     }
     method compile {
         gcc_jit_context_compile self;
     }
-    method compile-to-file(GccJitOutputKind $kind, Str $file) {
+    method compile-to-file(GccJitOutputKind() $kind, Str() $file) {
         gcc_jit_context_compile_to_file self, $kind, $file
     }
-    method compile-to-assembler(Str $file) {
+    method compile-to-assembler(Str() $file) {
         gcc_jit_context_compile_to_file self, ASSEMBLER, $file
     }
-    method compile-to-object(Str $file) {
+    method compile-to-object(Str() $file) {
         gcc_jit_context_compile_to_file self, OBJECT_FILE, $file
     }
-    method compile-to-dyn-lib(Str $file) {
+    method compile-to-dyn-lib(Str() $file) {
         gcc_jit_context_compile_to_file self, DYNAMIC_LIBRARY, $file
     }
-    method compile-to-executable(Str $file) {
+    method compile-to-executable(Str() $file) {
         gcc_jit_context_compile_to_file self, EXECUTABLE, $file
     }
 }
