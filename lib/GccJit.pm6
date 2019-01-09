@@ -13,17 +13,17 @@ enum GccJitOutputKind < ASSEMBLER OBJECT_FILE DYNAMIC_LIBRARY EXECUTABLE >;
 enum GccBinOp < PLUS MINUS MULT DIVIDE MODULO BITWISE_AND BITWISE_XOR
     BITWISE_OR LOGICAL_AND LOGICAL_OR LSHIFT RSHIFT >;
 
-class GccJit::Context is repr("CPointer") {
-    class Type      is repr("CPointer") {}
-    class Location  is repr("CPointer") {}
-    class RValue    is repr("CPointer") {}
-    class LValue    is repr("CPointer") {}
-    class Param     is repr("CPointer") {
+class GccJit is repr("CPointer") {
+    class Type is repr("CPointer") {}
+    class Location is repr("CPointer") {}
+    class RValue is repr("CPointer") {}
+    class LValue is repr("CPointer") {}
+    class Param is repr("CPointer") is RValue {
         method RValue {
             gcc_jit_param_as_rvalue self
         }
     }
-    class Block     is repr("CPointer") {
+    class Block is repr("CPointer") {
         method add-eval(RValue $rvalue, Location :$location) {
             gcc_jit_block_add_eval self, $location, $rvalue
         }
@@ -40,30 +40,30 @@ class GccJit::Context is repr("CPointer") {
             gcc_jit_block_end_with_void_return self, $location
         }
     }
-    class Function  is repr("CPointer") {
+    class Function is repr("CPointer") {
         method new-block(Str $name) {
             gcc_jit_function_new_block self, $name
         }
     }
-    class Result    is repr("CPointer") {
+    class Result is repr("CPointer") {
         method get-code(Str $name) {
             gcc_jit_result_get_code self, $name
         }
     }
 
-    sub gcc_jit_context_acquire() returns GccJit::Context is native("gccjit") { * }
+    sub gcc_jit_context_acquire() returns GccJit is native("gccjit") { * }
     sub gcc_jit_context_get_type(
-        GccJit::Context,
+        GccJit,
         int16
     ) returns Type is native("gccjit") { * }
     sub gcc_jit_context_new_param(
-        GccJit::Context,
+        GccJit,
         Location,
         Type,
         Str
     ) returns Param is native("gccjit") { * }
     sub gcc_jit_context_new_binary_op(
-        GccJit::Context,
+        GccJit,
         Location,
         int16,
         Type,
@@ -71,7 +71,7 @@ class GccJit::Context is repr("CPointer") {
         RValue
     ) returns RValue is native("gccjit") { * }
     sub gcc_jit_context_new_function(
-        GccJit::Context,
+        GccJit,
         Location,
         int16,
         Type,
@@ -81,27 +81,27 @@ class GccJit::Context is repr("CPointer") {
         int16
     ) returns Function is native("gccjit") { * }
     sub gcc_jit_context_compile(
-        GccJit::Context
+        GccJit
     ) returns Result is native("gccjit") { * }
     sub gcc_jit_context_compile_to_file(
-        GccJit::Context,
+        GccJit,
         int16,
         Str
     ) is native("gccjit") { * }
     sub gcc_jit_context_new_call (
-        GccJit::Context,
+        GccJit,
         Location,
         Function,
         int16,
         CArray[RValue]
     ) returns RValue is native("gccjit") { * }
     sub gcc_jit_context_new_rvalue_from_int(
-        GccJit::Context,
+        GccJit,
         Type,
         int16
     ) returns RValue is native("gccjit") { * }
     sub gcc_jit_context_new_string_literal(
-        GccJit::Context,
+        GccJit,
         Str
     ) returns RValue is native("gccjit") { * }
     sub gcc_jit_param_as_rvalue(
@@ -170,14 +170,60 @@ class GccJit::Context is repr("CPointer") {
         gcc_jit_context_new_function self, $location, $ftype,
             $type, $name, +@params, CArray[Param].new(|@params), +$variadic
     }
-    method compile {
-        gcc_jit_context_compile self;
+    method new-exported-function(Type $type, Str $name, *@params, Location :$location, Bool :$variadic = False) {
+        gcc_jit_context_new_function self, $location, EXPORTED,
+            $type, $name, +@params, CArray[Param].new(|@params), +$variadic
     }
-    method compile-to-file(GccJitOutputKind $kind, Str $file) {
-        gcc_jit_context_compile_to_file self, $kind, $file
+    method new-internal-function(Type $type, Str $name, *@params, Location :$location, Bool :$variadic = False) {
+        gcc_jit_context_new_function self, $location, INTERNAL,
+            $type, $name, +@params, CArray[Param].new(|@params), +$variadic
+    }
+    method new-imported-function(Type $type, Str $name, *@params, Location :$location, Bool :$variadic = False) {
+        gcc_jit_context_new_function self, $location, IMPORTED,
+            $type, $name, +@params, CArray[Param].new(|@params), +$variadic
+    }
+    method new-inlined-function(Type $type, Str $name, *@params, Location :$location, Bool :$variadic = False) {
+        gcc_jit_context_new_function self, $location, ALWAYS_INLINE,
+            $type, $name, +@params, CArray[Param].new(|@params), +$variadic
     }
     method new-binary-op(GccBinOp $op, Type $type, RValue $a, RValue $b, Location :$location) {
             gcc_jit_context_new_binary_op self, $location, +$op, $type, $a, $b
+    }
+    method new-binary-plus(Type $type, RValue $a, RValue $b, Location :$location) {
+        self.new-binary-op(PLUS, $type, $a, $b, :$location)
+    }
+    method new-binary-minus(Type $type, RValue $a, RValue $b, Location :$location) {
+        self.new-binary-op(MINUS, $type, $a, $b, :$location)
+    }
+    method new-binary-mult(Type $type, RValue $a, RValue $b, Location :$location) {
+        self.new-binary-op(MULT, $type, $a, $b, :$location)
+    }
+    method new-binary-divide(Type $type, RValue $a, RValue $b, Location :$location) {
+        self.new-binary-op(DIVIDE, $type, $a, $b, :$location)
+    }
+    method new-binary-modulo(Type $type, RValue $a, RValue $b, Location :$location) {
+        self.new-binary-op(MODULO, $type, $a, $b, :$location)
+    }
+    method new-binary-bitwise_and(Type $type, RValue $a, RValue $b, Location :$location) {
+        self.new-binary-op(BITWISE_AND, $type, $a, $b, :$location)
+    }
+    method new-binary-bitwise_xor(Type $type, RValue $a, RValue $b, Location :$location) {
+        self.new-binary-op(BITWISE_XOR, $type, $a, $b, :$location)
+    }
+    method new-binary-bitwise_or(Type $type, RValue $a, RValue $b, Location :$location) {
+        self.new-binary-op(BITWISE_OR, $type, $a, $b, :$location)
+    }
+    method new-binary-logical_and(Type $type, RValue $a, RValue $b, Location :$location) {
+        self.new-binary-op(LOGICAL_AND, $type, $a, $b, :$location)
+    }
+    method new-binary-logical_or(Type $type, RValue $a, RValue $b, Location :$location) {
+        self.new-binary-op(LOGICAL_OR, $type, $a, $b, :$location)
+    }
+    method new-binary-lshift(Type $type, RValue() $a, RValue() $b, Location :$location) {
+        self.new-binary-op(LSHIFT, $type, $a, $b, :$location)
+    }
+    method new-binary-rshift(Type $type, RValue $a, RValue $b, Location :$location) {
+        self.new-binary-op(RSHIFT, $type, $a, $b, :$location)
     }
     method new-call (Function $func, *@args, Location :$location) {
             gcc_jit_context_new_call self, $location, $func, +@args , CArray[RValue].new: |@args
@@ -187,5 +233,23 @@ class GccJit::Context is repr("CPointer") {
     }
     method new-string-literal(Str $val) {
         gcc_jit_context_new_string_literal self, $val
+    }
+    method compile {
+        gcc_jit_context_compile self;
+    }
+    method compile-to-file(GccJitOutputKind $kind, Str $file) {
+        gcc_jit_context_compile_to_file self, $kind, $file
+    }
+    method compile-to-assembler(GccJitOutputKind $kind, Str $file) {
+        gcc_jit_context_compile_to_file self, ASSEMBLER, $file
+    }
+    method compile-to-object(GccJitOutputKind $kind, Str $file) {
+        gcc_jit_context_compile_to_file self, OBJECT_FILE, $file
+    }
+    method compile-to-dyn-lib(GccJitOutputKind $kind, Str $file) {
+        gcc_jit_context_compile_to_file self, DYNAMIC_LIBRARY, $file
+    }
+    method compile-to-executable(GccJitOutputKind $kind, Str $file) {
+        gcc_jit_context_compile_to_file self, EXECUTABLE, $file
     }
 }
